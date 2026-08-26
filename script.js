@@ -52,27 +52,28 @@ function analisarNoticiaAletheia(textoBruto) {
          if(textoLimpo.toLowerCase().includes(termo)) indiceAlerta++;
     });
 
-    // COMEÇA COM 65 (Favorece a veracidade para notícias padrão passarem direto)
-    let pontuacao = 65; 
+    // Ponto de partida neutro/baixo (40 pontos). Precisa provar que é verdade!
+    let pontuacao = 40; 
 
-    if (fontesEncontradas >= 1) pontuacao += 20; 
+    // Bonificações se encontrar indícios reais de jornalismo
+    if (fontesEncontradas >= 1) pontuacao += 25; 
     if (indiceCautela >= 1) pontuacao += 15;
-    if (indiceTragedia >= 1) pontuacao += 15;
+    if (indiceTragedia >= 1 && fontesEncontradas >= 1) pontuacao += 20;
 
-    // Penalidade pesada apenas se tiver termos claros de golpe/fake news
-    if (indiceAlerta >= 1) pontuacao -= 50; 
+    // Penalidade pesada se usar táticas de fake news / caça-cliques
+    if (indiceAlerta >= 1) pontuacao -= 40; 
 
     pontuacao = Math.min(Math.max(pontuacao, 0), 100);
 
     let status = "";
     let classeAlerta = "";
 
-    // Nota de corte ajustada para 55: acima disso é Verdade, abaixo é Mentira!
-    if (pontuacao >= 55) {
-        status = "<b>Análise Concluída:</b> As agências e os padrões estruturais confirmam a autenticidade dos fatos relatados. O texto condiz com relatórios oficiais e apurações jornalísticas válidas.";
+    // Nota de corte: 60. Se passar de 60 é verdade, se ficar abaixo é mentira!
+    if (pontuacao >= 60) {
+        status = "<b>Análise Concluída:</b> O Orquestrador identificou fontes oficiais e estrutura compatível com relatórios jornalísticos verificados. Conteúdo validado como autêntico.";
         classeAlerta = "sucesso";
     } else {
-        status = "<b>ALERTA DE FRAUDE:</b> O Orquestrador identificou forte uso de engenharia social, tom alarmista ou ausência total de respaldo institucional. Conteúdo classificado como falso.";
+        status = "<b>ALERTA DE FRAUDE:</b> O Orquestrador detectou falta de fontes institucionais confiáveis ou uso de linguagem apelativa/alarmista. Conteúdo classificado como falso.";
         classeAlerta = "perigo";
     }
 
