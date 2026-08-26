@@ -1,79 +1,98 @@
 /**
- * Motor de Pré-processamento e Análise para o Projeto Aletheia
- * Corrige falsos positivos causados por ruído de texto, legendas e incerteza jornalística.
+ * Motor de Análise CacauV1.1 - Projeto Aletheia
  */
 function analisarNoticiaAletheia(textoBruto) {
-    // 1. LIMPEZA AUTOMÁTICA DE RUÍDO (Pré-processamento)
+    
+    // 1. LIMPEZA AUTOMÁTICA DE RUÍDO
     let textoLimpo = textoBruto
-        // Remove créditos de fotos e legendas comuns (ex: "— Foto: Reuters", "— REUTERS/Navesh...")
         .replace(/—\s*Foto:[^\n]+/gi, '')
         .replace(/—\s*REUTERS[^\n]+/gi, '')
-        // Remove marcações de GIFs e vídeos soltos
         .replace(/GIF\s*-[^\n]+/gi, '')
-        // Remove excesso de quebras de linha
         .replace(/\n\s*\n/g, '\n')
         .trim();
 
-    // Remove linhas duplicadas exatas (muito comum ao copiar e colar notícias longas)
     let linhas = textoLimpo.split('\n');
     let linhasUnicas = [...new Set(linhas.map(l => l.trim()))].filter(l => l.length > 0);
     textoLimpo = linhasUnicas.join('\n');
 
-    // 2. DETECÇÃO DE FONTES NOMEADAS E ENTIDADES DE PRESTÍGIO
-    // Verifica se a matéria cita cientistas, universidades ou agências de notícias
+    // 2. DETECÇÃO DE FONTES E ENTIDADES (+25 pontos)
     const termosConfiaveis = [
-        'universidade', 'onu', 'reuters', 'g1', 'pesquisador', 
-        'cientista', 'geólogo', 'especialista', 'planet labs', 
-        'agência', 'professor', 'estudo', 'relatório', 'distrito'
+        'universidade', 'onu', 'reuters', 'g1', 'sbt', 'cnn', 'jornal nacional',
+        'pesquisador', 'cientista', 'geólogo', 'especialista', 'planet labs', 
+        'agência', 'professor', 'estudo', 'relatório', 'distrito', 'oficial', 'autoridades'
     ];
-    
     let fontesEncontradas = 0;
     termosConfiaveis.forEach(termo => {
-        const regex = new RegExp(termo, 'gi');
-        const matches = textoLimpo.match(regex);
-        if (matches) {
-            fontesEncontradas += matches.length;
-        }
+        if (new RegExp(termo, 'gi').test(textoLimpo)) fontesEncontradas++;
     });
 
-    // 3. ANÁLISE DE CAUTELA JORNALÍSTICA (Incerteza Investigativa vs. Boato)
-    // Em vez de penalizar a incerteza, o algoritmo reconhece que termos de apuração 
-    // indicam jornalismo profissional e ético (evitando falsos positivos).
+    // 3. CAUTELA JORNALÍSTICA (+15 pontos)
     const termosCautela = [
         'pode ter', 'ainda não está claro', 'estão sendo investigadas', 
-        'parecem indicar', 'segundo', 'relatou', 'informou', 'apontaram'
+        'parecem indicar', 'segundo', 'relatou', 'informou', 'apontaram', 'possível', 'estimativa'
     ];
-    
     let indiceCautela = 0;
     termosCautela.forEach(termo => {
-        if (textoLimpo.toLowerCase().includes(termo)) {
-            indiceCautela++;
-        }
+        if (textoLimpo.toLowerCase().includes(termo)) indiceCautela++;
     });
 
-    // 4. CRITÉRIO DE CONFIABILIDADE (Lógica de Decisão do Aletheia)
-    let pontuacao = 50; // Nota base de neutralidade
+    // 4. CONTEXTO FATUAL DE TRAGÉDIA/DESASTRE (NOVO: Valida a notícia real)
+    // Se o texto tem esses termos, é jornalismo relatando fatos difíceis, não boato.
+    const termosTragedia = [
+        'mortes', 'mortos', 'vítimas', 'deslizamento', 'avalanche', 
+        'resgate', 'desaparecidos', 'corpos', 'desastre', 'tragédia', 'feridos'
+    ];
+    let indiceTragedia = 0;
+    termosTragedia.forEach(termo => {
+        if (textoLimpo.toLowerCase().includes(termo)) indiceTragedia++;
+    });
 
-    if (fontesEncontradas >= 3) pontuacao += 30; // Ganha pontos se citar especialistas/órgãos
-    if (indiceCautela >= 2) pontuacao += 20;    // Recompensa o tom cauteloso do jornalismo real
+    // 5. LINGUAGEM DE FAKE NEWS / GOLPE (Agora penaliza APENAS táticas enganosas de fato)
+    const termosAlerta = [
+        'repassem', 'espalhem', 'a mídia esconde', 'não querem que você saiba', 
+        'compartilhe antes que apaguem', 'cura milagrosa', 'compartilhem', 'urgente:'
+    ];
+    let indiceAlerta = 0;
+    termosAlerta.forEach(termo => {
+         if(textoLimpo.toLowerCase().includes(termo)) indiceAlerta++;
+    });
+
+    // 6. CÁLCULO FINAL DE CREDIBILIDADE (ORQUESTRADOR)
+    let pontuacao = 50; // Começa neutro
+
+    if (fontesEncontradas >= 2) pontuacao += 25; 
+    if (indiceCautela >= 2) pontuacao += 15;
+    
+    // Se relata uma tragédia MAS tem fontes, o sistema valida como notícia real de alta credibilidade
+    if (indiceTragedia >= 2 && fontesEncontradas >= 1) {
+        pontuacao += 20; 
+    }
+
+    // Só retira os pontos se o texto usar frases clássicas de tios do WhatsApp ("repassem", "a mídia esconde")
+    if (indiceAlerta >= 1) pontuacao -= 40; 
+
+    // Trava matemática para manter entre 0 e 100
+    pontuacao = Math.min(Math.max(pontuacao, 0), 100);
 
     let status = "";
     let classeAlerta = "";
 
     if (pontuacao >= 70) {
-        status = "Conteúdo Genuíno / Relato Jornalístico Verificado (Em apuração oficial).";
+        status = "<b>Conteúdo Genuíno:</b> O Orquestrador detectou fortes indícios de ser um relato jornalístico verificado. O texto apresenta fontes citadas e linguagem estruturada típica de portais e agências (reportando fatos ou apurações de última hora).";
         classeAlerta = "sucesso";
-    } else {
-        status = "Atenção: Conteúdo necessita de verificação adicional ou carece de fontes oficiais.";
+    } else if (pontuacao >= 40) {
+        status = "<b>Atenção Necessária:</b> O conteúdo relata acontecimentos, mas carece de múltiplas fontes oficiais citadas no texto. Recomendamos verificar em portais de notícias como G1, CNN ou SBT para confirmação.";
         classeAlerta = "aviso";
+    } else {
+        status = "<b>ALERTA CRÍTICO:</b> O Orquestrador marcou o conteúdo como FRAUDE. Trata-se de uma tática de engenharia social estruturada para gerar pânico ou cliques enganosos, usando linguagem de corrente de mensagens sem respaldo oficial.";
+        classeAlerta = "perigo";
     }
 
-    // Retorna o resultado tratado para ser exibido na interface
     return {
         textoLimpo: textoLimpo,
         totalFontesDetectadas: fontesEncontradas,
         nivelCautelaJornalistica: indiceCautela,
-        scoreCredibilidade: Math.min(pontuacao, 100),
+        scoreCredibilidade: pontuacao,
         diagnostico: status,
         tipo: classeAlerta
     };
