@@ -33,6 +33,7 @@
         .status-item { font-size: 20px; margin: 12px 0; font-weight: 600; letter-spacing: -0.5px; }
         .status-true { color: var(--neon-green); font-weight: 700; }
         .status-false { color: #ff4444; font-weight: 700; }
+        .status-warning { color: #eab308; font-weight: 700; }
         
         /* Seção ODS */
         .ods-section { margin-top: 50px; text-align: center; width: 100%; max-width: 800px; border-top: 1px solid #1e293b; padding-top: 30px; }
@@ -94,6 +95,9 @@
         </div>
     </div>
 
+    <!-- CONECTANDO O SEU MOTOR DE ANÁLISE AQUI -->
+    <script src="script.js"></script>
+
     <script>
         // Captura Inteligente de Imagem da Área de Transferência
         document.addEventListener('paste', function(e) {
@@ -113,7 +117,8 @@
         });
 
         function executarAletheia() {
-            const txt = document.getElementById('texto').value.toLowerCase();
+            // Removemos o .toLowerCase() daqui para enviar o texto original para o script.js
+            const txt = document.getElementById('texto').value; 
             const videoUrl = document.getElementById('video-url').value;
             const hasImg = document.getElementById('preview').style.display === 'block';
             const terminal = document.getElementById('terminal');
@@ -145,48 +150,48 @@
                 const sNoticia = document.getElementById('status-noticia');
                 const pVeredito = document.getElementById('veredito-texto');
 
-                // Lógica Independente para a IMAGEM:
-                // Se houver imagem, ela é avaliada separadamente pelo tipo de contexto
-                let imagemValida = false;
-                if (!hasImg) {
-                    sImagem.innerHTML = "<span style='color: #94a3b8;'>\"não enviada\"</span>";
+                // Lógica de Mídia
+                if (hasImg) {
+                    sImagem.innerHTML = "<span class='status-true'>\"imagem presente\"</span>";
                 } else {
-                    // Imagens de guerra ou arquivos legítimos são marcados como reais, mesmo que o texto seja manipulado
-                    imagemValida = true;
-                    sImagem.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
+                    sImagem.innerHTML = "<span style='color: #94a3b8;'>\"não enviada\"</span>";
                 }
 
-                // Lógica para o VÍDEO:
                 if (videoUrl.length > 5) {
-                    sVideo.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
+                    sVideo.innerHTML = "<span class='status-true'>\"vídeo presente\"</span>";
                 } else {
                     sVideo.innerHTML = "<span style='color: #94a3b8;'>\"não enviado\"</span>";
                 }
 
-                // Cenário 1: Notícias Reais / Conflitos Internacionais (Israel, Irã, Guerra)
-                if (txt.includes('israel') || txt.includes('irã') || txt.includes('guerra')) {
-                    sNoticia.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
-                    pVeredito.innerHTML = "As agências internacionais e correspondentes de transmissão confirmam a autenticidade dos fatos relatados. A imagem/mídia anexada condiz com os registros cronológicos oficiais.";
-                } 
-                // Cenário 2: Fake News com fotos reais descontextualizadas (Silvio Santos, Faro, Famosos, etc.)
-                else if (txt.includes('silvio santos') || txt.includes('faro') || txt.includes('bolsonaro') || txt.includes('morreu')) {
-                    sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
-                    
-                    if (hasImg) {
-                        pVeredito.innerHTML = "<b>ALERTAR DESINFORMAÇÃO:</b> A notícia é <b>FALSA</b>. O Orquestrador identificou que, embora a imagem anexa seja autêntica (foto real de arquivo), ela foi retirada de contexto para sustentar um texto mentiroso e gerar pânico nas redes.";
-                    } else {
-                        pVeredito.innerHTML = "O conteúdo foi classificado como fraude. Trata-se de uma tática coordenada de engenharia social estruturada para gerar pânico digital e cliques falsos sem respaldo de órgãos oficiais.";
+                // -------------------------------------------------------------
+                // AQUI O ORQUESTRADOR ASSUME O CONTROLE!
+                // Chamamos a inteligência do script.js e usamos a pontuação dela
+                // -------------------------------------------------------------
+                
+                if (txt.trim().length < 5) {
+                    sNoticia.innerHTML = "<span class='status-false'>\"inválida\"</span>";
+                    pVeredito.innerHTML = "Dados insuficientes na caixa de entrada para gerar relatórios detalhados. Por favor, forneça o corpo do texto da notícia.";
+                } else {
+                    // Executa a análise real baseada no CacauV1.1
+                    const resultadoIA = analisarNoticiaAletheia(txt);
+
+                    if (resultadoIA.scoreCredibilidade >= 70) {
+                        sNoticia.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
+                        pVeredito.innerHTML = resultadoIA.diagnostico;
+                    } 
+                    else if (resultadoIA.scoreCredibilidade >= 40) {
+                        sNoticia.innerHTML = "<span class='status-warning'>\"atenção requerida\"</span>";
+                        pVeredito.innerHTML = resultadoIA.diagnostico;
+                    } 
+                    else {
+                        sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
+                        // Mantém a trava original para foto real + texto falso, se a pessoa colou uma imagem
+                        if (hasImg) {
+                            pVeredito.innerHTML = "<b>ALERTAR DESINFORMAÇÃO:</b> A notícia é <b>FALSA</b>. O Orquestrador identificou que, embora exista uma imagem anexa, ela está sendo usada para sustentar um texto enganoso (tática comum em fake news).<br><br>" + resultadoIA.diagnostico;
+                        } else {
+                            pVeredito.innerHTML = resultadoIA.diagnostico;
+                        }
                     }
-                } 
-                // Cenário 3: Texto muito curto ou vazio
-                else if (txt.length < 5) {
-                    sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
-                    pVeredito.innerHTML = "Dados insuficientes na caixa de entrada para gerar relatórios detalhados. Por favor, forneça o corpo do texto ou anexe os arquivos de mídia corretamente.";
-                }
-                // Cenário 4: Outros boatos ou textos genéricos suspeitos
-                else {
-                    sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
-                    pVeredito.innerHTML = "A análise preditiva encontrou fortes traços de linguagem apelativa e sensacionalista. O conteúdo foi marcado como não confiável.";
                 }
                 
                 resBox.scrollIntoView({ behavior: 'smooth' });
