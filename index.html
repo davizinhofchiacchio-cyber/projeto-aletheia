@@ -33,7 +33,6 @@
         .status-item { font-size: 20px; margin: 12px 0; font-weight: 600; letter-spacing: -0.5px; }
         .status-true { color: var(--neon-green); font-weight: 700; }
         .status-false { color: #ff4444; font-weight: 700; }
-        .status-warning { color: #eab308; font-weight: 700; }
         
         /* Seção ODS */
         .ods-section { margin-top: 50px; text-align: center; width: 100%; max-width: 800px; border-top: 1px solid #1e293b; padding-top: 30px; }
@@ -95,7 +94,7 @@
         </div>
     </div>
 
-    <!-- CONECTANDO O SEU MOTOR DE ANÁLISE AQUI -->
+    <!-- CONEXÃO COM O SCRIPT.JS EXTERNO -->
     <script src="script.js"></script>
 
     <script>
@@ -117,8 +116,7 @@
         });
 
         function executarAletheia() {
-            // Removemos o .toLowerCase() daqui para enviar o texto original para o script.js
-            const txt = document.getElementById('texto').value; 
+            const txt = document.getElementById('texto').value;
             const videoUrl = document.getElementById('video-url').value;
             const hasImg = document.getElementById('preview').style.display === 'block';
             const terminal = document.getElementById('terminal');
@@ -150,47 +148,35 @@
                 const sNoticia = document.getElementById('status-noticia');
                 const pVeredito = document.getElementById('veredito-texto');
 
-                // Lógica de Mídia
+                // Lógica de Mídia (Retornando padrão direto "é verdade")
                 if (hasImg) {
-                    sImagem.innerHTML = "<span class='status-true'>\"imagem presente\"</span>";
+                    sImagem.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
                 } else {
                     sImagem.innerHTML = "<span style='color: #94a3b8;'>\"não enviada\"</span>";
                 }
 
                 if (videoUrl.length > 5) {
-                    sVideo.innerHTML = "<span class='status-true'>\"vídeo presente\"</span>";
+                    sVideo.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
                 } else {
                     sVideo.innerHTML = "<span style='color: #94a3b8;'>\"não enviado\"</span>";
                 }
 
-                // -------------------------------------------------------------
-                // AQUI O ORQUESTRADOR ASSUME O CONTROLE!
-                // Chamamos a inteligência do script.js e usamos a pontuação dela
-                // -------------------------------------------------------------
-                
+                // Validação de texto vazio
                 if (txt.trim().length < 5) {
-                    sNoticia.innerHTML = "<span class='status-false'>\"inválida\"</span>";
+                    sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
                     pVeredito.innerHTML = "Dados insuficientes na caixa de entrada para gerar relatórios detalhados. Por favor, forneça o corpo do texto da notícia.";
                 } else {
-                    // Executa a análise real baseada no CacauV1.1
+                    // Chama a inteligência do script.js
                     const resultadoIA = analisarNoticiaAletheia(txt);
 
-                    if (resultadoIA.scoreCredibilidade >= 70) {
+                    if (resultadoIA.scoreCredibilidade >= 55) {
                         sNoticia.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
+                        document.getElementById('resultado').style.borderColor = "var(--neon-green)";
                         pVeredito.innerHTML = resultadoIA.diagnostico;
-                    } 
-                    else if (resultadoIA.scoreCredibilidade >= 40) {
-                        sNoticia.innerHTML = "<span class='status-warning'>\"atenção requerida\"</span>";
-                        pVeredito.innerHTML = resultadoIA.diagnostico;
-                    } 
-                    else {
+                    } else {
                         sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
-                        // Mantém a trava original para foto real + texto falso, se a pessoa colou uma imagem
-                        if (hasImg) {
-                            pVeredito.innerHTML = "<b>ALERTAR DESINFORMAÇÃO:</b> A notícia é <b>FALSA</b>. O Orquestrador identificou que, embora exista uma imagem anexa, ela está sendo usada para sustentar um texto enganoso (tática comum em fake news).<br><br>" + resultadoIA.diagnostico;
-                        } else {
-                            pVeredito.innerHTML = resultadoIA.diagnostico;
-                        }
+                        document.getElementById('resultado').style.borderColor = "#ff4444";
+                        pVeredito.innerHTML = resultadoIA.diagnostico;
                     }
                 }
                 
