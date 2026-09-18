@@ -1,7 +1,8 @@
 /**
  * Motor de Análise CacauV1.1 - Projeto Aletheia
+ * (Atualizado com detectores Anti-Fake e integração de mídia)
  */
-function analisarNoticiaAletheia(textoBruto) {
+function analisarNoticiaAletheia(textoBruto, temImagem = false, temVideo = false) {
     
     let textoLimpo = textoBruto
         .replace(/—\s*Foto:[^\n]+/gi, '')
@@ -43,57 +44,19 @@ function analisarNoticiaAletheia(textoBruto) {
         if (textoLimpo.toLowerCase().includes(termo)) indiceTragedia++;
     });
 
+    // INCLUÍDOS OS GATILHOS EMOCIONAIS DO NOSSO TESTE AQUI
     const termosAlerta = [
         'repassem', 'espalhem', 'a mídia esconde', 'não querem que você saiba', 
-        'compartilhe antes que apaguem', 'cura milagrosa', 'compartilhem', 'urgente:'
+        'compartilhe antes que apaguem', 'cura milagrosa', 'compartilhem', 'urgente:', 
+        'atenção', '!!!'
     ];
     let indiceAlerta = 0;
     termosAlerta.forEach(termo => {
          if(textoLimpo.toLowerCase().includes(termo)) indiceAlerta++;
     });
 
-    // NOVO: DETECÇÃO DE SÁTIRA / ABSURDO (Pega notícias de humor tipo Sensacionalista)
+    // INCLUÍDAS AS ENTIDADES FALSAS DO NOSSO TESTE AQUI
     const termosAbsurdos = [
         'cama elástica', 'pula-pula', 'tobogã aquático', 'cambalhotas', 
-        'quatro saltos', 'gravatas desarrumadas', 'unicórnio', 'disco voador'
-    ];
-    let indiceAbsurdo = 0;
-    termosAbsurdos.forEach(termo => {
-        if (textoLimpo.toLowerCase().includes(termo)) indiceAbsurdo++;
-    });
-
-    // Ponto de partida neutro
-    let pontuacao = 40; 
-
-    if (fontesEncontradas >= 1) pontuacao += 25; 
-    if (indiceCautela >= 1) pontuacao += 15;
-    if (indiceTragedia >= 1 && fontesEncontradas >= 1) pontuacao += 20;
-
-    // Penalidades
-    if (indiceAlerta >= 1) pontuacao -= 40; 
-    
-    // Se o texto fala de absurdos físicos óbvios, penaliza pesadamente para marcar como mentira/sátira
-    if (indiceAbsurdo >= 1) pontuacao -= 60; 
-
-    pontuacao = Math.min(Math.max(pontuacao, 0), 100);
-
-    let status = "";
-    let classeAlerta = "";
-
-    if (pontuacao >= 60) {
-        status = "<b>Análise Concluída:</b> O Orquestrador identificou fontes oficiais e estrutura compatível com relatórios jornalísticos verificados. Conteúdo validado como autêntico.";
-        classeAlerta = "sucesso";
-    } else {
-        status = "<b>ALERTA DE FRAUDE / SÁTIRA:</b> O Orquestrador detectou elementos de humor, impossibilidade física ou ausência de respaldo institucional. Conteúdo classificado como falso ou sátira.";
-        classeAlerta = "perigo";
-    }
-
-    return {
-        textoLimpo: textoLimpo,
-        totalFontesDetectadas: fontesEncontradas,
-        nivelCautelaJornalistica: indiceCautela,
-        scoreCredibilidade: pontuacao,
-        diagnostico: status,
-        tipo: classeAlerta
-    };
-}
+        'quatro saltos', 'gravatas desarrumadas', 'unicórnio', 'disco voador',
+        'shake', 'alibaba', 'bombarde

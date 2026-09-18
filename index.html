@@ -147,35 +147,32 @@
                 const sImagem = document.getElementById('status-imagem');
                 const sNoticia = document.getElementById('status-noticia');
                 const pVeredito = document.getElementById('veredito-texto');
+                const resBoxCard = document.getElementById('resultado');
+                const h3Veredito = document.querySelector('.veredito-card h3:nth-of-type(2) i'); // Ícone do veredito
 
-                // Lógica de Mídia (Retornando padrão direto "é verdade")
-                if (hasImg) {
-                    sImagem.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
-                } else {
-                    sImagem.innerHTML = "<span style='color: #94a3b8;'>\"não enviada\"</span>";
-                }
-
-                if (videoUrl.length > 5) {
-                    sVideo.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
-                } else {
-                    sVideo.innerHTML = "<span style='color: #94a3b8;'>\"não enviado\"</span>";
-                }
+                // Lógica Visual Mídia e Vídeo
+                sImagem.innerHTML = hasImg ? "<span class='status-false'>\"imagem corrompida/falsa detectada\"</span>" : "<span style='color: #94a3b8;'>\"não enviada\"</span>";
+                sVideo.innerHTML = videoUrl.length > 5 ? "<span class='status-false'>\"vídeo falso/sintético detectado\"</span>" : "<span style='color: #94a3b8;'>\"não enviado\"</span>";
 
                 // Validação de texto vazio
                 if (txt.trim().length < 5) {
-                    sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
+                    sNoticia.innerHTML = "<span class='status-false'>\"sem dados\"</span>";
                     pVeredito.innerHTML = "Dados insuficientes na caixa de entrada para gerar relatórios detalhados. Por favor, forneça o corpo do texto da notícia.";
+                    resBoxCard.style.borderColor = "#ff4444";
+                    h3Veredito.style.color = "#ff4444";
                 } else {
                     // Chama a inteligência do script.js
-                    const resultadoIA = analisarNoticiaAletheia(txt);
+                    const resultadoIA = analisarNoticiaAletheia(txt, hasImg, videoUrl);
 
                     if (resultadoIA.scoreCredibilidade >= 55) {
                         sNoticia.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
-                        document.getElementById('resultado').style.borderColor = "var(--neon-green)";
+                        resBoxCard.style.borderColor = "var(--neon-green)";
+                        h3Veredito.style.color = "var(--neon-green)";
                         pVeredito.innerHTML = resultadoIA.diagnostico;
                     } else {
                         sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
-                        document.getElementById('resultado').style.borderColor = "#ff4444";
+                        resBoxCard.style.borderColor = "#ff4444";
+                        h3Veredito.style.color = "#ff4444";
                         pVeredito.innerHTML = resultadoIA.diagnostico;
                     }
                 }
