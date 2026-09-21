@@ -24,17 +24,14 @@
         .btn-analisar { background: var(--neon-green); color: #0b0f19; border: none; padding: 20px; border-radius: 12px; font-weight: 700; font-size: 18px; cursor: pointer; transition: 0.3s; margin-top: 10px; box-shadow: 0 4px 15px rgba(222, 255, 154, 0.2); font-family: inherit; }
         .btn-analisar:hover { transform: scale(1.02); letter-spacing: 0.5px; }
 
-        /* Terminal de Processamento */
         .terminal { background: #000; border: 1px solid #334155; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 14px; display: none; margin-top: 20px; color: #94a3b8; line-height: 1.6; }
         .log-linha { margin: 5px 0; }
 
-        /* Painel do Veredito Direto */
         .veredito-card { background: #161e31; border: 2px solid var(--neon-green); padding: 30px; border-radius: 20px; display: none; margin-top: 20px; box-shadow: 0 0 30px rgba(222, 255, 154, 0.1); }
         .status-item { font-size: 20px; margin: 12px 0; font-weight: 600; letter-spacing: -0.5px; }
         .status-true { color: var(--neon-green); font-weight: 700; }
         .status-false { color: #ff4444; font-weight: 700; }
         
-        /* Seção ODS */
         .ods-section { margin-top: 50px; text-align: center; width: 100%; max-width: 800px; border-top: 1px solid #1e293b; padding-top: 30px; }
         .ods-grid { display: flex; justify-content: center; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
         .ods-item { width: 100px; transition: 0.3s; }
@@ -69,7 +66,6 @@
 
         <div class="terminal" id="terminal"></div>
 
-        <!-- Painel do Veredito Estruturado -->
         <div class="veredito-card" id="resultado">
             <h3 style="color: var(--neon-green); margin: 0 0 20px 0; text-transform: uppercase; font-size: 14px; letter-spacing: 1px;"><i class="fa-solid fa-square-poll-horizontal"></i> Triagem do Sistema</h3>
             
@@ -79,11 +75,10 @@
             
             <hr style="border: 0; border-top: 1px solid #2a3751; margin: 25px 0;">
             
-            <h3 style="color: #fff; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-gavel" style="color: var(--neon-green);"></i> Veredito Final (Orquestrador)</h3>
+            <h3 id="titulo-veredito" style="color: #fff; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-gavel" style="color: var(--neon-green);"></i> Veredito Final (Orquestrador)</h3>
             <p id="veredito-texto" style="font-size: 17px; line-height: 1.6; color: #94a3b8; margin: 0;"></p>
         </div>
 
-        <!-- Seção de Impacto ODS -->
         <div class="ods-section">
             <h3 style="color: #94a3b8; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;">PROJETO ALINHADO COM AS ODS DA ONU</h3>
             <div class="ods-grid">
@@ -94,11 +89,9 @@
         </div>
     </div>
 
-    <!-- CONEXÃO COM O SCRIPT.JS EXTERNO -->
     <script src="script.js"></script>
 
     <script>
-        // Captura Inteligente de Imagem da Área de Transferência
         document.addEventListener('paste', function(e) {
             const items = e.clipboardData.items;
             for (let i = 0; i < items.length; i++) {
@@ -148,37 +141,37 @@
                 const sNoticia = document.getElementById('status-noticia');
                 const pVeredito = document.getElementById('veredito-texto');
                 const resBoxCard = document.getElementById('resultado');
-                const h3Veredito = document.querySelector('.veredito-card h3:nth-of-type(2) i'); // Ícone do veredito
 
-                // Lógica Visual Mídia e Vídeo
                 sImagem.innerHTML = hasImg ? "<span class='status-false'>\"imagem corrompida/falsa detectada\"</span>" : "<span style='color: #94a3b8;'>\"não enviada\"</span>";
                 sVideo.innerHTML = videoUrl.length > 5 ? "<span class='status-false'>\"vídeo falso/sintético detectado\"</span>" : "<span style='color: #94a3b8;'>\"não enviado\"</span>";
 
-                // Validação de texto vazio
                 if (txt.trim().length < 5) {
                     sNoticia.innerHTML = "<span class='status-false'>\"sem dados\"</span>";
                     pVeredito.innerHTML = "Dados insuficientes na caixa de entrada para gerar relatórios detalhados. Por favor, forneça o corpo do texto da notícia.";
                     resBoxCard.style.borderColor = "#ff4444";
-                    h3Veredito.style.color = "#ff4444";
                 } else {
-                    // Chama a inteligência do script.js
-                    const resultadoIA = analisarNoticiaAletheia(txt, hasImg, videoUrl);
+                    try {
+                        const resultadoIA = analisarNoticiaAletheia(txt, hasImg, videoUrl);
 
-                    if (resultadoIA.scoreCredibilidade >= 55) {
-                        sNoticia.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
-                        resBoxCard.style.borderColor = "var(--neon-green)";
-                        h3Veredito.style.color = "var(--neon-green)";
-                        pVeredito.innerHTML = resultadoIA.diagnostico;
-                    } else {
-                        sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
+                        if (resultadoIA.scoreCredibilidade >= 55) {
+                            sNoticia.innerHTML = "<span class='status-true'>\"é verdade\"</span>";
+                            resBoxCard.style.borderColor = "var(--neon-green)";
+                            pVeredito.innerHTML = resultadoIA.diagnostico;
+                        } else {
+                            sNoticia.innerHTML = "<span class='status-false'>\"é mentira\"</span>";
+                            resBoxCard.style.borderColor = "#ff4444";
+                            pVeredito.innerHTML = resultadoIA.diagnostico;
+                        }
+                    } catch (err) {
+                        console.error("Erro na execução do script.js:", err);
+                        sNoticia.innerHTML = "<span class='status-false'>\"erro de script\"</span>";
+                        pVeredito.innerHTML = "Ocorreu um erro ao processar o arquivo <b>script.js</b>. Certifique-se de que o arquivo foi atualizado corretamente no GitHub.";
                         resBoxCard.style.borderColor = "#ff4444";
-                        h3Veredito.style.color = "#ff4444";
-                        pVeredito.innerHTML = resultadoIA.diagnostico;
                     }
                 }
                 
                 resBox.scrollIntoView({ behavior: 'smooth' });
-            }, 3000);
+            }, 2500);
         }
     </script>
 </body>
