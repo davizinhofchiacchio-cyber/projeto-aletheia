@@ -15,7 +15,7 @@ document.addEventListener('paste', function(e) {
     }
 });
 
-// 2. Função principal que conversa com a IA e burla o CORS
+// 2. Função principal que conversa com a IA do seu Bot Específico
 async function iniciarAnaliseReal() {
     const txt = document.getElementById('texto').value;
     const imgElement = document.getElementById('preview');
@@ -42,7 +42,7 @@ async function iniciarAnaliseReal() {
 
     // Efeito visual do terminal
     const logs = [
-        "> [Sistema] Autenticando com a IA e contornando bloqueios (Proxy CORS)...",
+        "> [Sistema] Autenticando com a IA e inicializando canais dedicados...",
         "> [Sistema] Conexão segura estabelecida com o Oráculo.",
         "> [Oráculo] Recebendo dados inseridos pelo usuário...",
         "> [Oráculo] Processando veracidade e gerando veredito. Aguarde..."
@@ -55,17 +55,20 @@ async function iniciarAnaliseReal() {
     }
 
     try {
-        // ---------------------------------------------------------
-        // COMUNICAÇÃO COM A EASY-PEASY USANDO O PROXY (corsproxy.io)
-        // ---------------------------------------------------------
-        const response = await fetch("https://corsproxy.io/?https://api.easy-peasy.ai/v1/chat", {
+        const botId = "031173ae-a14a-47cb-bae4-6c2abc411231";
+        const apiKey = "887c2ec7-d5fa-4560-8841-b32f6b9c146a";
+
+        // MUDANÇA CRÍTICA: Link exato do seu bot passado pelo proxy para burlar o CORS do navegador
+        const urlDoBot = `https://bots.easy-peasy.ai/bot/${botId}/api`;
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(urlDoBot);
+
+        const response = await fetch(proxyUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "x-api-key": "887c2ec7-d5fa-4560-8841-b32f6b9c146a"
+                "x-api-key": apiKey
             },
             body: JSON.stringify({
-                bot: "031173ae-a14a-47cb-bae4-6c2abc411231",
                 message: txt
             })
         });
@@ -76,10 +79,10 @@ async function iniciarAnaliseReal() {
 
         const data = await response.json();
         
-        // Puxa a resposta da IA
-        const respostaIA = data.reply || data.text || data.message || data.content || "Não foi possível extrair o texto da resposta da IA.";
+        // Puxa a resposta (cobrindo as várias formas que a API pode retornar)
+        const respostaIA = data.bot_response || data.bot?.text || data.reply || data.text || data.message || "Análise executada mas resposta em formato desconhecido.";
 
-        // Exibe o resultado final
+        // Exibe o resultado final integrado ao seu layout hacker
         setTimeout(() => {
             terminal.innerHTML += `<div class="log-linha" style="color: var(--neon-green);">> [Sucesso] Resposta decodificada. Imprimindo relatório...</div>`;
             
@@ -89,10 +92,10 @@ async function iniciarAnaliseReal() {
                 btn.disabled = false;
                 btn.innerHTML = "CONSULTAR ORÁCULO ALETHEIA";
 
-                sImagem.innerHTML = hasImg ? "<span class='status-true'>\"anexada\"</span>" : "<span style='color: #94a3b8;'>\"não enviada\"</span>";
-                sNoticia.innerHTML = "<span class='status-true'>\"verificada pela IA\"</span>";
+                if (sImagem) sImagem.innerHTML = hasImg ? "<span class='status-true'>\"anexada\"</span>" : "<span style='color: #94a3b8;'>\"não enviada\"</span>";
+                if (sNoticia) sNoticia.innerHTML = "<span class='status-true'>\"verificada pela IA\"</span>";
 
-                pVeredito.innerHTML = respostaIA.replace(/\n/g, '<br>'); 
+                if (pVeredito) pVeredito.innerHTML = respostaIA.replace(/\n/g, '<br>'); 
                 resBox.scrollIntoView({ behavior: 'smooth' });
             }, 1000);
 
