@@ -1,136 +1,116 @@
-/**
- * Motor de Análise CacauV1.1 - Projeto Aletheia
- * (Versão V6 - Separação de Imprensa Oficial vs. Boatos/Acusações Informais)
- */
-function analisarNoticiaAletheia(textoBruto, temImagem = false, temVideo = false) {
-    if (!textoBruto) textoBruto = "";
+// 1. Função para lidar com a colagem da imagem na tela
+document.addEventListener('paste', function(e) {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+            const blob = items[i].getAsFile();
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById('preview').src = event.target.result;
+                document.getElementById('preview').style.display = 'block';
+                document.getElementById('placeholder-text').style.display = 'none';
+            };
+            reader.readAsDataURL(blob);
+        }
+    }
+});
+
+// 2. Função principal que conversa com a IA
+async function iniciarAnaliseReal() {
+    const txt = document.getElementById('texto').value;
+    const imgElement = document.getElementById('preview');
+    const hasImg = imgElement.style.display === 'block';
     
-    let textoLimpo = textoBruto
-        .replace(/—\s*Foto:[^\n]+/gi, '')
-        .replace(/—\s*REUTERS[^\n]+/gi, '')
-        .replace(/GIF\s*-[^\n]+/gi, '')
-        .replace(/\n\s*\n/g, '\n')
-        .trim();
+    const terminal = document.getElementById('terminal');
+    const resBox = document.getElementById('resultado');
+    const btn = document.getElementById('btn-iniciar');
+    const pVeredito = document.getElementById('veredito-texto');
+    const sImagem = document.getElementById('status-imagem');
+    const sNoticia = document.getElementById('status-noticia');
 
-    // Normaliza o texto: remove acentos e transforma em minúsculas
-    let textoBusca = textoLimpo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    // 1. FONTES E VEÍCULOS DE IMPRENSA OFICIAIS (Dão credibilidade real)
-    const imprensaEOficiais = [
-        'g1', 'reuters', 'cnn', 'sbt', 'bbc', 'folha', 'estadao', 'uol', 'globo', 'nature', 'science',
-        'onu', 'governo', 'ministerio', 'defesa civil', 'policia', 'delegacia', 'boletim de ocorrencia', 
-        'prefeitura', 'tribunal', 'justica', 'agencia oficial', 'universidade', 'stanford', 'harvard', 'mit', 'usp'
-    ];
-    let fontesOficiaisCount = 0;
-    imprensaEOficiais.forEach(function(termo) {
-        if (textoBusca.includes(termo)) fontesOficiaisCount++;
-    });
-
-    // 2. CONTEXTO LOCAL E CARGOS (Apenas contextualizam o texto, não garantem veracidade sozinhos)
-    const contextoLocal = ['escola', 'professora', 'professor', 'diretora', 'diretor', 'coordenadora', 'coordena', 'aluno', 'alunos', 'empresa'];
-    let contextoLocalCount = 0;
-    contextoLocal.forEach(function(termo) {
-        if (textoBusca.includes(termo)) contextoLocalCount++;
-    });
-
-    // 3. TERMOS DE LINGUAGEM CIENTÍFICA E CAUTELA
-    const termosCautela = [
-        'pode ser', 'pode ter', 'futuramente', 'ainda nao', 'estao sendo', 
-        'segundo', 'permite', 'permitiu', 'indica', 'possivel', 'pela primeira vez', 'estimativa', 'de acordo'
-    ];
-    let indiceCautela = 0;
-    termosCautela.forEach(function(termo) {
-        if (textoBusca.includes(termo)) indiceCautela++;
-    });
-
-    // 4. GATILHOS DE SENSACIONALISMO E ALERTA
-    const termosAlerta = [
-        'repassem', 'espalhem', 'a midia esconde', 'nao querem que voce saiba', 
-        'compartilhe', 'cura milagrosa', 'urgente', 'atencao', '!!!'
-    ];
-    let indiceAlerta = 0;
-    termosAlerta.forEach(function(termo) {
-        if (textoBusca.includes(termo)) indiceAlerta++;
-    });
-
-    // 5. GATILHOS DE ACUSAÇÃO INFORMAL E BOATO (Sem respaldo de órgão oficial)
-    const termosAcusacaoInformal = [
-        'e pega', 'esta sendo pega', 'pega vendendo', 'envolvida no caso', 'envolvidas no caso',
-        'esquema', 'roubando', 'preso em flagrante', 'flagrado'
-    ];
-    let indiceAcusacaoInformal = 0;
-    termosAcusacaoInformal.forEach(function(termo) {
-        if (textoBusca.includes(termo)) indiceAcusacaoInformal++;
-    });
-
-    // 6. ABSURDOS E PSEUDO-SAÚDE
-    const termosAbsurdos = ['cama elastica', 'pula-pula', 'toboga aquatico', 'unicornio', 'shake', 'alibaba'];
-    let indiceAbsurdo = 0;
-    termosAbsurdos.forEach(function(termo) {
-        if (textoBusca.includes(termo)) indiceAbsurdo++;
-    });
-
-    const termosPseudoSaude = ['elimina completamente', 'previne 100%', 'cura 100%', 'agua com sal', 'em jejum'];
-    let indicePseudoSaude = 0;
-    termosPseudoSaude.forEach(function(termo) {
-        if (textoBusca.includes(termo)) indicePseudoSaude++;
-    });
-
-    // 7. CHECAGEM DE CAIXA ALTA
-    const palavrasMaiusculas = textoBruto.match(/[A-Z]{3,}/g) || [];
-    const excessoCaixaAlta = palavrasMaiusculas.length > 2;
-
-    // --- CÁLCULO DE PONTUAÇÃO ---
-    let pontuacao = 50; 
-
-    // Bônus por fonte institucional/imprensa real
-    if (fontesOficiaisCount >= 1) pontuacao += 25; 
-    if (fontesOficiaisCount >= 3) pontuacao += 15; 
-    
-    // Pequeno bônus por contexto bem delimitado (apenas se houver linguagem neutra)
-    if (contextoLocalCount >= 2 && indiceAlerta === 0) pontuacao += 10;
-    if (indiceCautela >= 1) pontuacao += 10;
-
-    // --- PENALIDADES ---
-    if (indiceAlerta >= 1) pontuacao -= 25; 
-    if (excessoCaixaAlta) pontuacao -= 20; 
-    if (temImagem || temVideo) pontuacao -= 10;
-    
-    // Penalidade por acusação informal sem fonte oficial citada
-    if (indiceAcusacaoInformal >= 1 && fontesOficiaisCount === 0) {
-        pontuacao -= 40; 
+    if(txt.trim().length < 5) {
+        alert("Cole o texto da notícia ou o boato para o Oráculo analisar!");
+        return;
     }
 
-    // Punições Absolutas
-    if (indiceAbsurdo >= 1) pontuacao -= 80; 
-    if (indicePseudoSaude >= 1) pontuacao -= 80; 
+    // Prepara a interface (esconde resultados antigos e mostra o terminal)
+    resBox.style.display = 'none';
+    terminal.style.display = 'block';
+    terminal.innerHTML = "";
+    btn.disabled = true;
+    btn.innerHTML = "PROCESSANDO DADOS VIA API...";
 
-    // Trava o limite entre 0 e 100
-    pontuacao = Math.min(Math.max(pontuacao, 0), 100);
+    // Efeito visual do terminal para manter o clima hacker enquanto a IA pensa
+    const logs = [
+        "> [Sistema] Autenticando com chave API (REST)...",
+        "> [Sistema] Conexão segura estabelecida com o Oráculo.",
+        "> [Oráculo] Recebendo dados inseridos pelo usuário...",
+        "> [Oráculo] Processando veracidade e gerando veredito. Aguarde..."
+    ];
 
-    // --- GERAÇÃO DO DIAGNÓSTICO ---
-    let status = "";
-    let classeAlerta = "";
-
-    if (pontuacao >= 55) {
-        status = `<b>Análise Concluída:</b> O Orquestrador identificou fontes oficiais de imprensa/institucionais compatíveis com relatórios verificáveis. Conteúdo validado como autêntico.`;
-        classeAlerta = "sucesso";
-    } else {
-        let motivos = [];
-        if (indiceAcusacaoInformal >= 1 && fontesOficiaisCount === 0) motivos.push("Contém acusações informais ou relatos de irregularidade sem citação de órgãos oficiais (Polícia, Justiça) ou veículos de imprensa.");
-        if (indicePseudoSaude >= 1) motivos.push("Uso de alegações médicas suspeitas ou promessas absolutas de saúde.");
-        if (indiceAbsurdo >= 1) motivos.push("Menção a entidades fictícias ou cenários absurdos.");
-        if (indiceAlerta >= 1 || excessoCaixaAlta) motivos.push("Uso de gatilhos de urgência (URGENTE/!!!) ou caixa alta excessiva.");
-        if (fontesOficiaisCount === 0 && indiceAcusacaoInformal === 0) motivos.push("Ausência de fontes institucionais ou jornalísticas verificáveis.");
-
-        status = `<b>ALERTA DE FRAUDE / BOATO:</b> O Orquestrador detectou probabilidade de desinformação ou relato não verificado.<br><br><b>Padrões detectados:</b><ul><li>${motivos.join("</li><li>")}</li></ul>`;
-        classeAlerta = "perigo";
+    for (let i = 0; i < logs.length; i++) {
+        setTimeout(() => {
+            terminal.innerHTML += `<div class="log-linha">${logs[i]}</div>`;
+        }, i * 600); // Mostra uma linha a cada 0.6 segundos
     }
 
-    return {
-        textoLimpo: textoLimpo,
-        scoreCredibilidade: pontuacao,
-        diagnostico: status,
-        tipo: classeAlerta
-    };
+    try {
+        // ---------------------------------------------------------
+        // COMUNICAÇÃO REAL COM A EASY-PEASY
+        // ---------------------------------------------------------
+        const response = await fetch("https://api.easy-peasy.ai/v1/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": "887c2ec7-d5fa-4560-8841-b32f6b9c146a" // Sua chave
+            },
+            body: JSON.stringify({
+                bot: "031173ae-a14a-47cb-bae4-6c2abc411231", // O ID do seu bot
+                message: txt // O texto que o usuário digitou
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro na API: ${response.status}`);
+        }
+
+        // Pega a resposta da IA
+        const data = await response.json();
+        
+        // Dependendo de como a API da Easy-Peasy devolve, a resposta fica em um desses campos
+        const respostaIA = data.reply || data.text || data.message || data.content || "Não foi possível extrair o texto da resposta da IA.";
+
+        // Atualiza a tela com o Veredito Real
+        setTimeout(() => {
+            terminal.innerHTML += `<div class="log-linha" style="color: var(--neon-green);">> [Sucesso] Resposta decodificada. Imprimindo relatório...</div>`;
+            
+            setTimeout(() => {
+                terminal.style.display = 'none';
+                resBox.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = "CONSULTAR ORÁCULO ALETHEIA";
+
+                // Atualiza o painel verde
+                sImagem.innerHTML = hasImg ? "<span class='status-true'>\"anexada\"</span>" : "<span style='color: #94a3b8;'>\"não enviada\"</span>";
+                sNoticia.innerHTML = "<span class='status-true'>\"verificada pela IA\"</span>";
+
+                // Escreve a resposta da IA na tela (substituindo quebras de linha normais por quebras de linha HTML)
+                pVeredito.innerHTML = respostaIA.replace(/\n/g, '<br>'); 
+
+                // Rola a tela para baixo suavemente para o usuário ler a resposta
+                resBox.scrollIntoView({ behavior: 'smooth' });
+            }, 1000);
+
+        }, 2500); // Aguarda a animação do terminal terminar
+
+    } catch (error) {
+        // Se der erro (como falta de internet ou bloqueio do navegador), avisa no terminal
+        setTimeout(() => {
+            terminal.innerHTML += `<div class="log-linha" style="color: #ff4444;">> [ERRO CRÍTICO] Falha ao comunicar com a API: ${error.message}</div>`;
+            terminal.innerHTML += `<div class="log-linha" style="color: #ff4444;">> [AVISO DE SEGURANÇA] Como você está abrindo o site do seu PC (file:///), o seu navegador está bloqueando a comunicação com o servidor externo da IA. Leia a dica abaixo.</div>`;
+            
+            btn.disabled = false;
+            btn.innerHTML = "TENTAR NOVAMENTE";
+        }, 2500);
+    }
 }
