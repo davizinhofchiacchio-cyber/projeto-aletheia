@@ -1,4 +1,4 @@
-// 1. Função para lidar com a colagem da imagem na tela (Opcional)
+// 1. Função para lidar com a colagem da imagem no ecrã (Opcional)
 document.addEventListener('paste', function(e) {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -15,7 +15,7 @@ document.addEventListener('paste', function(e) {
     }
 });
 
-// 2. Função principal que conversa com a IA do seu Bot Específico
+// 2. Função principal com comunicação direta à API do Bot
 async function iniciarAnaliseReal() {
     const txt = document.getElementById('texto').value;
     const imgElement = document.getElementById('preview');
@@ -33,19 +33,17 @@ async function iniciarAnaliseReal() {
         return;
     }
 
-    // Prepara a interface e mostra o terminal
     resBox.style.display = 'none';
     terminal.style.display = 'block';
     terminal.innerHTML = "";
     btn.disabled = true;
     btn.innerHTML = "PROCESSANDO DADOS VIA API...";
 
-    // Efeito visual do terminal
     const logs = [
-        "> [Sistema] Autenticando com a IA e inicializando canais dedicados...",
+        "> [Sistema] A iniciar comunicação direta com a IA...",
         "> [Sistema] Conexão segura estabelecida com o Oráculo.",
-        "> [Oráculo] Recebendo dados inseridos pelo usuário...",
-        "> [Oráculo] Processando veracidade e gerando veredito. Aguarde..."
+        "> [Oráculo] A receber os dados inseridos...",
+        "> [Oráculo] A processar a veracidade. Aguarde..."
     ];
 
     for (let i = 0; i < logs.length; i++) {
@@ -55,18 +53,14 @@ async function iniciarAnaliseReal() {
     }
 
     try {
-        const botId = "031173ae-a14a-47cb-bae4-6c2abc411231";
-        const apiKey = "887c2ec7-d5fa-4560-8841-b32f6b9c146a";
+        // Conexão DIRETA sem proxies (usando as credenciais que autorizaste)
+        const urlDoBot = "https://bots.easy-peasy.ai/bot/031173ae-a14a-47cb-bae4-6c2abc411231/api";
 
-        // MUDANÇA CRÍTICA: Link exato do seu bot passado pelo proxy para burlar o CORS do navegador
-        const urlDoBot = `https://bots.easy-peasy.ai/bot/${botId}/api`;
-        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(urlDoBot);
-
-        const response = await fetch(proxyUrl, {
+        const response = await fetch(urlDoBot, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "x-api-key": apiKey
+                "x-api-key": "887c2ec7-d5fa-4560-8841-b32f6b9c146a"
             },
             body: JSON.stringify({
                 message: txt
@@ -79,12 +73,10 @@ async function iniciarAnaliseReal() {
 
         const data = await response.json();
         
-        // Puxa a resposta (cobrindo as várias formas que a API pode retornar)
         const respostaIA = data.bot_response || data.bot?.text || data.reply || data.text || data.message || "Análise executada mas resposta em formato desconhecido.";
 
-        // Exibe o resultado final integrado ao seu layout hacker
         setTimeout(() => {
-            terminal.innerHTML += `<div class="log-linha" style="color: var(--neon-green);">> [Sucesso] Resposta decodificada. Imprimindo relatório...</div>`;
+            terminal.innerHTML += `<div class="log-linha" style="color: var(--neon-green);">> [Sucesso] Resposta descodificada. A imprimir relatório...</div>`;
             
             setTimeout(() => {
                 terminal.style.display = 'none';
